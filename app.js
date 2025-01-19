@@ -1,9 +1,12 @@
 const express = require('express');
 const cors = require('cors');
 
+const MongoDB = require('./app/utils/mongodb.util');
+const ContactService = require('./app/services/contact.service');
+
+const ApiError = require('./app/api-error');
 const app = express();
 const contactRouter = require('./app/routes/contact.router');
-const ApiError = require('./app/api-error');
 
 app.use(cors());
 app.use(express.json());
