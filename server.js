@@ -1,7 +1,8 @@
 const app = require('./app');
-const config = require('./app/config');
+const config = require('./app/config/index.js');
+const MongoDB = require('./app/utils/mongodb.util.js');
 
-const PORT = config.app.port;
+const PORT = config.app.port;   
 
 async function startServer(){
     try{
