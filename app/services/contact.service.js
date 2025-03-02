@@ -1,78 +1,96 @@
-const { ObjectId, ReturnDocument } = require('mongodb');
+const {ObjectId} = require('mongodb');
 
 class ContactService {
-    constructor(client){
-        this.Contact = client.db().collection('contacts');
-    }
-    //Định nghĩa các phương thức truy xuất CSDL sử dụng mongodb API
-    extractConactDate(payload){
-        const contact = {
-            name: payload.name,
-            email: payload.email,
-            address: payload.address,
-            phone: payload.phone,
-            favorite: payload.favorite,
-        };
+  constructor(client) {
+    this.Contact = client.db().collection('contacts');
+  }
 
-        Object.keys(contact).forEach(
-            (key) => contact[key] === undefined && delete contact[key]
-        );
-        return contact;
-    }
+  // Định nghĩa các phương thức truy xuất CSDL sử dụng MongoDB API
+  extractContactData(payload) {
+    const contact = {
+      name: payload.name,
+      email: payload.email,
+      address: payload.address,
+      phone: payload.phone,
+      favorite: payload.favorite,
+    };
 
-    async create(payload){
-        const contact = this.extractConactDate(payload);
-        const result = await this.Contact.findOneAndUpdate(
-            contact,
-            { $set: {favorite: contact.favorite === true} },
-            {ReturnDocument: "after", upsert: true}
-        );
-        return result;
-    }
+    // Loại bỏ các trường undefined
+    Object.keys(contact).forEach(
+        (key) => contact[key] === undefined && delete contact[key]);
+    return contact;
+  }
 
-    async find(filter){
-        const cursor = await this.Contact.find(filter);
-        return await cursor.toArray();
+  // Lấy tất cả các liên hệ
+  async getAllContacts() {
+    try {
+      const contacts =
+          await this.Contact.find().toArray();  // Chuyển kết quả thành mảng
+      return contacts;
+    } catch (error) {
+      throw new Error('Unable to fetch contacts');
     }
-    async findByName(name){
-        return await this.find({
-            name: {$regex: new RegExp(new RegExp(name)), $options: "i"},
-        });
-    }
+  }
 
-    async findById(id){
-        return await this.Contact.findOne({
-            _id: ObjectId.isValid(id) ? new ObjectId(id) : null,
-        });
-    }
+  // Tạo mới hoặc cập nhật liên hệ
+  async create(payload) {
+    const contact = this.extractContactData(payload);
+    const result =
+        await this.Contact.insertOne(contact);  // Dùng insertOne để tạo mới
+    return result;
+  }
 
-    async update(id, payload){
-        const filter = {
-            _id: ObjectId.isValid(id) ? new ObjectId(id) : null,
-        };
-        const update = this.extractConactDate(payload);
-        const result = await this.Contact.findOneAndUpdate(
-            filter,
-            { $set: update },
-            { returnDocument: "after" }
-        );
-        return result.value;
-    }
+  // Tìm kiếm liên hệ theo điều kiện
+  async find(filter) {
+    const cursor = await this.Contact.find(filter);
+    return await cursor.toArray();
+  }
 
-    async delete(id){
-        const result = await this.Contact.findOneAndDelete({
-            _id: ObjectId.isValid(id) ? new ObjectId(id) : null,
-        });
-        return result.value;
-    }
+  // Tìm liên hệ theo tên
+  async findByName(name) {
+    return await this.find({
+      name: {$regex: new RegExp(name, 'i')},  // Sửa regex để dùng đúng cách
+    });
+  }
 
-    async findFavorite(){
-        return await this.find({favorite: true});
-    }
+  // Tìm liên hệ theo ID
+  async findById(id) {
+    return await this.Contact.findOne({
+      _id: ObjectId.isValid(id) ? new ObjectId(id) : null,
+    });
+  }
 
-    async deleteAll(){
-        const result = await this.Contact.deleteMany({});
-        return result.deletedCount;
-    }
-}   
+  // Cập nhật liên hệ theo ID
+  async update(id, payload) {
+    const filter = {
+      _id: ObjectId.isValid(id) ? new ObjectId(id) : null,
+    };
+    const update = this.extractContactData(payload);
+    const result = await this.Contact.findOneAndUpdate(
+        filter, {$set: update}, {returnDocument: 'after'}
+        // Chữ thường cho 'returnDocument'
+    );
+    return result.value;
+  }
+
+  // Xóa liên hệ theo ID
+  async delete(id) {
+    const result = await this.Contact.findOneAndDelete({
+      _id: ObjectId.isValid(id) ? new ObjectId(id) : null,
+    });
+    return result.value;
+  }
+
+  // Tìm liên hệ yêu thích
+  async findFavorite() {
+    return await this.find({favorite: true});
+  }
+
+  // Xóa tất cả liên hệ
+  async deleteAll() {
+    const result = await this.Contact.deleteMany({});
+    return result.deletedCount;
+  }
+}
+
 module.exports = ContactService;
